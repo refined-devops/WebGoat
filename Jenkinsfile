@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables specific to your setup
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
         WEBGOAT_HOME = '/home/devops/WebGoat'
@@ -11,11 +10,9 @@ pipeline {
     }
 
     stages {
-        // 1. Preparation Stage
         stage('Prepare Environment') {
             steps {
                 script {
-                    // Ensure Docker network exists
                     sh '''
                         docker network inspect ${DOCKER_NETWORK} || \
                         docker network create ${DOCKER_NETWORK}
@@ -24,10 +21,8 @@ pipeline {
             }
         }
 
-        // 2. Source Code Verification
         stage('Verify Source Code') {
             steps {
-                // Verify the WebGoat directory exists and is accessible
                 script {
                     sh '''
                         ls -la ${WEBGOAT_HOME}
@@ -39,7 +34,6 @@ pipeline {
             }
         }
 
-        // 3. Build Application
         stage('Build WebGoat Application') {
             steps {
                 script {
@@ -52,15 +46,12 @@ pipeline {
             }
         }
 
-        // 4. SAST - Static Application Security Testing
         stage('Static Security Testing (SAST)') {
             parallel {
-                // 4.1 Dependency Vulnerability Scan
                 stage('Dependency Vulnerability Scan') {
                     steps {
                         script {
                             sh '''
-                                # Run OWASP Dependency-Check
                                 docker run --rm \
                                     -v ${WEBGOAT_HOME}:/src \
                                     owasp/dependency-check:latest \
@@ -72,7 +63,6 @@ pipeline {
                     }
                 }
 
-                // 4.2 SonarQube Code Analysis (Optional)
                 stage('Code Quality Scan') {
                     steps {
                         script {
@@ -90,7 +80,6 @@ pipeline {
             }
         }
 
-        // 5. Containerize WebGoat Application
         stage('Containerize Application') {
             steps {
                 script {
@@ -106,12 +95,10 @@ pipeline {
             }
         }
 
-        // 6. DAST - Dynamic Application Security Testing
         stage('Dynamic Security Testing (DAST)') {
             steps {
                 script {
                     sh '''
-                        # Run OWASP ZAP baseline scan
                         docker run --rm \
                             --network ${DOCKER_NETWORK} \
                             -v ${WEBGOAT_HOME}:/zap/wrk:rw \
@@ -124,7 +111,6 @@ pipeline {
             }
         }
 
-        // 7. Security Reporting
         stage('Generate Security Report') {
             steps {
                 script {
@@ -133,18 +119,14 @@ pipeline {
                         cp ${WEBGOAT_HOME}/dependency-check-report/dependency-check-report.html ${WEBGOAT_HOME}/security-reports/
                         cp ${WEBGOAT_HOME}/zap_scan_report.html ${WEBGOAT_HOME}/security-reports/
                     '''
-
-                    // Archive artifacts
                     archiveArtifacts artifacts: 'security-reports/**/*', allowEmptyArchive: true
                 }
             }
         }
     }
 
-    // Post-build actions
     post {
         always {
-            // Cleanup
             script {
                 sh '''
                     docker stop webgoat-container-${BUILD_NUMBER} || true
@@ -154,7 +136,6 @@ pipeline {
                 '''
             }
 
-            // Publish HTML reports
             publishHTML([
                 allowMissing: false,
                 alwaysLinkToLastBuild: true,
@@ -166,8 +147,7 @@ pipeline {
         }
 
         failure {
-            // Notification on failure
-            mail to: 'zeeshan.khaliq@cydea.tech,
+            mail to: 'zeeshan.khaliq@cydea.tech',
                  subject: "Security Scan Failed: ${currentBuild.fullDisplayName}",
                  body: "Security scanning failed for WebGoat. Please check the attached reports."
         }
