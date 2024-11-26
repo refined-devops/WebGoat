@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-        // 1. Prepare Environment
         stage('Prepare Environment') {
             steps {
                 script {
@@ -22,7 +21,6 @@ pipeline {
             }
         }
 
-        // 2. Verify Source Code
         stage('Verify Source Code') {
             steps {
                 script {
@@ -36,7 +34,6 @@ pipeline {
             }
         }
 
-        // 3. Build WebGoat Application
         stage('Build WebGoat Application') {
             steps {
                 script {
@@ -49,10 +46,8 @@ pipeline {
             }
         }
 
-        // 4. Static Security Testing (SAST)
         stage('Static Security Testing (SAST)') {
             parallel {
-                // 4.1 Dependency Vulnerability Scan
                 stage('Dependency Vulnerability Scan') {
                     steps {
                         script {
@@ -61,7 +56,6 @@ pipeline {
                                     -v ${WEBGOAT_HOME}:/src \
                                     owasp/dependency-check:latest \
                                     --scan /src \
-                                    --maxUpdates 20000 \
                                     --format HTML \
                                     --out /src/dependency-check-report
                             '''
@@ -71,7 +65,6 @@ pipeline {
             }
         }
 
-        // 5. Containerize WebGoat Application
         stage('Containerize Application') {
             steps {
                 script {
@@ -87,7 +80,6 @@ pipeline {
             }
         }
 
-        // 6. Dynamic Security Testing (DAST)
         stage('Dynamic Security Testing (DAST)') {
             steps {
                 script {
@@ -104,7 +96,6 @@ pipeline {
             }
         }
 
-        // 7. Generate Security Report
         stage('Generate Security Report') {
             steps {
                 script {
@@ -113,7 +104,6 @@ pipeline {
                         cp ${WEBGOAT_HOME}/dependency-check-report/dependency-check-report.html ${WEBGOAT_HOME}/security-reports/
                         cp ${WEBGOAT_HOME}/zap_scan_report.html ${WEBGOAT_HOME}/security-reports/
                     '''
-                    // Archive the security reports as build artifacts
                     archiveArtifacts artifacts: 'security-reports/**/*', allowEmptyArchive: true
                 }
             }
@@ -123,7 +113,6 @@ pipeline {
     post {
         always {
             script {
-                // Cleanup containers, images, and networks
                 sh '''
                     docker stop webgoat-container-${BUILD_NUMBER} || true
                     docker rm webgoat-container-${BUILD_NUMBER} || true
@@ -132,7 +121,6 @@ pipeline {
                 '''
             }
 
-            // Publish HTML reports
             publishHTML([
                 allowMissing: false,
                 alwaysLinkToLastBuild: true,
@@ -144,7 +132,6 @@ pipeline {
         }
 
         failure {
-            // Notification on failure
             mail to: 'zeeshan.khaliq@cydea.tech',
                  subject: "Security Scan Failed: ${currentBuild.fullDisplayName}",
                  body: "Security scanning failed for WebGoat. Please check the attached reports."
