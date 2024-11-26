@@ -28,7 +28,7 @@ pipeline {
                         ls -la ${WEBGOAT_HOME}
                         cd ${WEBGOAT_HOME}
                         git status
-                        git pull origin develop
+                        git pull origin main
                     '''
                 }
             }
@@ -56,6 +56,7 @@ pipeline {
                                     -v ${WEBGOAT_HOME}:/src \
                                     owasp/dependency-check:latest \
                                     --scan /src \
+                                    --maxUpdates 20000 \
                                     --format HTML \
                                     --out /src/dependency-check-report
                             '''
