@@ -28,7 +28,7 @@ pipeline {
                         ls -la ${WEBGOAT_HOME}
                         cd ${WEBGOAT_HOME}
                         git status
-                        git pull origin main
+                        git pull origin develop
                     '''
                 }
             }
