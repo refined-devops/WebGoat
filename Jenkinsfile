@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -59,21 +58,6 @@ pipeline {
                                     --scan /src \
                                     --format HTML \
                                     --out /src/dependency-check-report
-                            '''
-                        }
-                    }
-                }
-
-                stage('Code Quality Scan') {
-                    steps {
-                        script {
-                            sh '''
-                                cd ${WEBGOAT_HOME}
-                                mvn clean verify sonar:sonar \
-                                  -Dsonar.projectKey=webgoat \
-                                  -Dsonar.projectName='WebGoat Security Lab' \
-                                  -Dsonar.host.url=http://${SERVER_IP}:9000 \
-                                  -Dsonar.token=your_sonar_token
                             '''
                         }
                     }
